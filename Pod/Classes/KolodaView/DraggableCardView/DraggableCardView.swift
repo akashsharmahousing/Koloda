@@ -391,40 +391,26 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
     private func resetViewPositionAndTransformations() {
         delegate?.card(cardWasReset: self)
         
-        removeAnimations()
+        // Cancel any current animations
+        layer.removeAllAnimations()
+        overlayView?.layer.removeAllAnimations()
         
-        let resetPositionAnimation = POPSpringAnimation(propertyNamed: kPOPLayerTranslationXY)
-        resetPositionAnimation?.fromValue = NSValue(cgPoint:POPLayerGetTranslationXY(layer))
-        resetPositionAnimation?.toValue = NSValue(cgPoint: CGPoint.zero)
-        resetPositionAnimation?.springBounciness = cardResetAnimationSpringBounciness
-        resetPositionAnimation?.springSpeed = cardResetAnimationSpringSpeed
-        resetPositionAnimation?.completionBlock = {
-            (_, _) in
-            self.layer.transform = CATransform3DIdentity
-            self.dragBegin = false
-        }
-        
-        layer.pop_add(resetPositionAnimation, forKey: "resetPositionAnimation")
-        
-        let resetRotationAnimation = POPBasicAnimation(propertyNamed: kPOPLayerRotation)
-        resetRotationAnimation?.fromValue = POPLayerGetRotationZ(layer)
-        resetRotationAnimation?.toValue = CGFloat(0.0)
-        resetRotationAnimation?.duration = cardResetAnimationDuration
-        
-        layer.pop_add(resetRotationAnimation, forKey: "resetRotationAnimation")
-        
-        let overlayAlphaAnimation = POPBasicAnimation(propertyNamed: kPOPViewAlpha)
-        overlayAlphaAnimation?.toValue = 0.0
-        overlayAlphaAnimation?.duration = cardResetAnimationDuration
-        overlayAlphaAnimation?.completionBlock = { _, _ in
-            self.overlayView?.alpha = 0
-        }
-        overlayView?.pop_add(overlayAlphaAnimation, forKey: "resetOverlayAnimation")
-        
-        let resetScaleAnimation = POPBasicAnimation(propertyNamed: kPOPLayerScaleXY)
-        resetScaleAnimation?.toValue = NSValue(cgPoint: CGPoint(x: 1.0, y: 1.0))
-        resetScaleAnimation?.duration = cardResetAnimationDuration
-        layer.pop_add(resetScaleAnimation, forKey: "resetScaleAnimation")
+        // Animate reset (position, rotation, scale) using UIView animation
+        UIView.animate(
+            withDuration: cardResetAnimationDuration,
+            delay: 0,
+            usingSpringWithDamping: 0.6, // Adjust to match `springBounciness`
+            initialSpringVelocity: 0.8,  // Adjust to match `springSpeed`
+            options: [.curveEaseInOut],
+            animations: {
+                self.transform = .identity // resets rotation, scale, and translation
+                self.overlayView?.alpha = 0
+            },
+            completion: { _ in
+                self.layer.transform = CATransform3DIdentity
+                self.dragBegin = false
+            }
+        )
     }
     
     //MARK: Public
